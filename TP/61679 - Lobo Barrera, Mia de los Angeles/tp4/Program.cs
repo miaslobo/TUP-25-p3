@@ -4,7 +4,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
 // ─────────────────────────────────────────────────────
-// CLASES PROPORCIONADAS POR EL PROFESOR (sin modificar)
+// CLASES PROPORCIONADAS POR EL PROFESOR (sin modificar) 
 // ─────────────────────────────────────────────────────
 public class Pregunta {
     public int PreguntaId { get; set; }
