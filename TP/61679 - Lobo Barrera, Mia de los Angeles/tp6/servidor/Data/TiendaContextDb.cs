@@ -3,9 +3,9 @@ using servidor.Modelos;
 
 namespace servidor.Modelos
 {
-    public class TiendaDbContext : DbContext
+    public class TiendaContextDb : DbContext
     {
-        public TiendaDbContext(DbContextOptions<TiendaDbContext> options) : base(options) { }
+        public TiendaContextDb(DbContextOptions<TiendaContextDb> options) : base(options) { }
         public DbSet<Producto> Productos => Set<Producto>();
         public DbSet<Compra> Compras => Set<Compra>();
         public DbSet<ItemCompra> ItemsCompra => Set<ItemCompra>();

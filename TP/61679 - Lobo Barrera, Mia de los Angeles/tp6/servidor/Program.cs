@@ -19,13 +19,13 @@ builder.Services.AddCors(options => {
 // Agregar controladores si es necesario
 builder.Services.AddControllers();
 
-builder.Services.AddDbContext<TiendaDbContext>(options => options.UseSqlite("Data Source=tienda.db"));
+builder.Services.AddDbContext<TiendaContextDb>(options => options.UseSqlite("Data Source=tienda.db"));
 
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<TiendaDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<TiendaContextDb>();
     db.Database.Migrate();
 }
 
@@ -51,13 +51,15 @@ app.MapGet("/api/datos", () => new { Mensaje = "Datos desde el servidor", Fecha 
 var carritos = new Dictionary<Guid, Carrito>();
 
 //1. GET de productos con busqueda
-app.MapGet("/api/productos", async (TiendaDbContext db, string? query) =>
+app.MapGet("/productos", async (TiendaContextDb db, string? query) =>
 {
     var productos = string.IsNullOrEmpty(query)
 ? await db.Productos.ToListAsync()
 : await db.Productos
 .Where(p => p.Nombre.Contains(query) || p.Descripcion.Contains(query))
 .ToListAsync();
+
+return Results.Ok(productos);
 });
 
 //POST: inicializar el carrito y retorna su ID
@@ -77,7 +79,7 @@ app.MapGet("/api/carritos/{id:guid}", (Guid id) =>
 });
 
 //4. DELETE vacia el carrito y regresa productos al stock
-app.MapDelete("/api/carritos/{id:guid}", async (Guid id, TiendaDbContext db) =>
+app.MapDelete("/api/carritos/{id:guid}", async (Guid id, TiendaContextDb db) =>
 {
     if (carritos.TryGetValue(id, out var carrito))
     {
@@ -95,7 +97,7 @@ app.MapDelete("/api/carritos/{id:guid}", async (Guid id, TiendaDbContext db) =>
 });
 
 //5. PUT agrega o actualiza la cantidad de un producto en el carrito
-app.MapPut("/api/carritos/{id:guid}/{productoId:int}", async (Guid id, int productoId, TiendaDbContext db) =>
+app.MapPut("/api/carritos/{id:guid}/{productoId:int}", async (Guid id, int productoId, TiendaContextDb db) =>
 {
     if (!carritos.TryGetValue(id, out var carrito))
         return Results.NotFound("Carrito no encontrado.");
@@ -125,7 +127,7 @@ app.MapPut("/api/carritos/{id:guid}/{productoId:int}", async (Guid id, int produ
 });
 
 //6. DELETE elimina/reeduce la cantidad de un producto en el carrito
-app.MapDelete("/api/carritos/{id:guid}/{productoId:int}", async (Guid id, int productoId, TiendaDbContext db) =>
+app.MapDelete("/api/carritos/{id:guid}/{productoId:int}", async (Guid id, int productoId, TiendaContextDb db) =>
 {
     if (!carritos.TryGetValue(id, out var carrito))
         return Results.NotFound("Carrito no encontrado");
@@ -149,7 +151,7 @@ app.MapDelete("/api/carritos/{id:guid}/{productoId:int}", async (Guid id, int pr
 });
 
 //7. Confirma/registra y limpia el carrito
-app.MapPut("/api/carritos/{id:guid}/confirmar", async (Guid id, CompraDto compraDto, TiendaDbContext db) =>
+app.MapPut("/carritos/{id:guid}/confirmar", async (Guid id, CompraDto compraDto, TiendaContextDb db) =>
 {
     if (!carritos.TryGetValue(id, out var carrito))
         return Results.BadRequest("Carrito no encontrado");
