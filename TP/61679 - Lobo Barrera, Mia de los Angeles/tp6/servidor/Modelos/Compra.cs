@@ -8,15 +8,10 @@ namespace servidor.Modelos
         public DateTime Fecha { get; set; } = DateTime.Now;
         public decimal Total { get; set; }
 
-        [Required]
-        public string NombreCliente { get; set; } = "";
+        public string NombreCliente { get; set; } = string.Empty;
+        public string ApellidoCliente { get; set; } = string.Empty;
+        public string EmailCliente { get; set; } = string.Empty;
 
-        [Required]
-        public string ApellidoeCliente { get; set; } = "";
-
-        [Required]
-        public string EmailCliente { get; set; } = "";
-
-        public List<ItemCompra> Items { get; set; } = new List<ItemCompra>();
+        public List<ItemCompra> Items { get; set; } = new ();
     }
 }
