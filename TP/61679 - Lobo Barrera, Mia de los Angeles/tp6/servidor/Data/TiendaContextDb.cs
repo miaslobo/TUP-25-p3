@@ -8,7 +8,7 @@ namespace servidor.Modelos
         public TiendaDbContext(DbContextOptions<TiendaDbContext> options) : base(options) { }
         public DbSet<Producto> Productos => Set<Producto>();
         public DbSet<Compra> Compras => Set<Compra>();
-        public DbSet<ItemCompra> ItemsCopra => Set<ItemCompra>();
+        public DbSet<ItemCompra> ItemsCompra => Set<ItemCompra>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
