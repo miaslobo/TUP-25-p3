@@ -152,7 +152,7 @@ app.MapPut("/carritos/{carritoId:int}/confirmar", async (TiendaDbContext db, int
         ProductoId = item.ProductoId,
         Cantidad = item.Cantidad,
         PrecioUnitario = item.PrecioUnitario,
-        Producto = item.Producto // Asegura que la propiedad requerida 'Producto' se establezca
+        Productos = item.Producto // Asegúrate de que 'Producto' está incluido en el Include del carrito
     }).ToList();
     compra.Total = compra.Items.Sum(i => i.Cantidad * i.PrecioUnitario);
 

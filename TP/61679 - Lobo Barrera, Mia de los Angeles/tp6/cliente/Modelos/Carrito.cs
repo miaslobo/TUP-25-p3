@@ -1,5 +1,6 @@
-using servidor.Modelos;
-namespace servidor.Modelos
+using System.Collections.Generic;
+using cliente.Modelos;
+namespace cliente.Modelos
 {
     public class Carrito
     {

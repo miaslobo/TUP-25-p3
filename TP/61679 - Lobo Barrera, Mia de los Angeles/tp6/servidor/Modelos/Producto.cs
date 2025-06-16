@@ -1,3 +1,4 @@
+using servidor.Modelos;
 namespace servidor.Modelos
 {
     public class Producto

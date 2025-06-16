@@ -1,7 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using servidor.Modelos;
+using cliente.Modelos;
+using static cliente.Pages.Confirmacion;
 
-namespace servidor.Modelos
+namespace cliente.Modelos
 {
     public class Compra
     {
