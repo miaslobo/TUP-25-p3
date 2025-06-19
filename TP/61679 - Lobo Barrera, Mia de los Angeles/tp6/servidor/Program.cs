@@ -5,68 +5,57 @@ using servidor.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Agregar servicios CORS para permitir solicitudes desde el cliente
-builder.Services.AddCors(options => {
-    options.AddPolicy("AllowClientApp", policy => {
-        policy.WithOrigins("http://localhost:5177", "https://localhost:7221")
+// ✅ CONFIGURAR CORS correctamente
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowClientApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5177") // el puerto del cliente Blazor
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-// Agregar controladores si es necesario
-builder.Services.AddControllers();
-
-// configuro el efcore con sqlite
-builder.Services.AddDbContext<TiendaDbContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=tiendaonline.db"));
+// EF Core con SQLite
+builder.Services.AddDbContext<TiendaDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=tiendaonline.db"));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
 var app = builder.Build();
-app.UseCors("PermitirCliente");
 
+// ✅ ORDEN CORRECTO DEL MIDDLEWARE
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Configurar el pipeline de solicitudes HTTP
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
-
-// Usar CORS con la política definida
 app.UseRouting();
-app.UseCors("AllowClientApp");
-app.UseAuthorization();
 
-// Mapear rutas básicas
+app.UseCors("AllowClientApp"); // ⚠️ MUY IMPORTANTE
+
+app.UseAuthorization();
+app.MapControllers();
+
+// 🧪 Test rápido de CORS
+app.MapGet("/test-cors", () => Results.Ok(new { mensaje = "CORS habilitado" }));
+
+
+// Rutas mínimas (endpoints)
 app.MapGet("/", () => "Servidor API está en funcionamiento");
 
-// Ejemplo de endpoint de API
-app.MapGet("/api/datos", () => new { Mensaje = "Datos desde el servidor", Fecha = DateTime.Now });
-
-//endpoins
-
-//1. POST creamos carrito vacio
 app.MapPost("/carritos", async (TiendaDbContext db) =>
 {
-    var nuevoCarrito = new Carrito
-    {
-        Items = new List<CarritoItem>()
-    };
-
+    var nuevoCarrito = new Carrito { Items = new List<CarritoItem>() };
     db.Carritos.Add(nuevoCarrito);
     await db.SaveChangesAsync();
-    return Results.Ok(new { Id = nuevoCarrito.Id});
-}
-);
+    return Results.Ok(new { Id = nuevoCarrito.Id });
+});
 
-//2. GET de productos con busqueda
 app.MapGet("/productos", async (TiendaDbContext db, string? query) =>
 {
     var productosQuery = db.Productos.AsQueryable();
@@ -77,17 +66,15 @@ app.MapGet("/productos", async (TiendaDbContext db, string? query) =>
     return await productosQuery.ToListAsync();
 });
 
-//3. POST: inicializar el carrito y retorna su ID
 app.MapGet("/carritos/{carritoId:int}", async (TiendaDbContext db, int carritoId) =>
 {
     var carrito = await db.Carritos
-    .Include(c => c.Items)
-    .ThenInclude(i => i.Producto)
-    .FirstOrDefaultAsync(c => c.Id == carritoId);
+        .Include(c => c.Items)
+        .ThenInclude(i => i.Producto)
+        .FirstOrDefaultAsync(c => c.Id == carritoId);
     return carrito is not null ? Results.Ok(carrito) : Results.NotFound();
 });
 
-//4. DELETE vaciar carrito
 app.MapDelete("/carritos/{carritoId:int}", async (TiendaDbContext db, int carritoId) =>
 {
     var carrito = await db.Carritos.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == carritoId);
@@ -97,21 +84,19 @@ app.MapDelete("/carritos/{carritoId:int}", async (TiendaDbContext db, int carrit
     return Results.Ok();
 });
 
-//5. PUT agrega/actualiza el producto en carrito
-app.MapPut("carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext db, int carritoId, int productoId, HttpRequest request) =>
+app.MapPut("/carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext db, int carritoId, int productoId, HttpRequest request) =>
 {
     var body = await request.ReadFromJsonAsync<Dictionary<string, int>>();
     if (body == null || !body.TryGetValue("cantidad", out var cantidad))
         return Results.BadRequest("Falta el parámetro 'cantidad'.");
-    //buscar carrito y producto
-        var carrito = await db.Carritos.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == carritoId);
+
+    var carrito = await db.Carritos.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == carritoId);
     if (carrito is null) return Results.NotFound("Carrito no encontrado.");
 
     var producto = await db.Productos.FirstOrDefaultAsync(p => p.Id == productoId);
     if (producto is null || producto.Stock < cantidad)
         return Results.BadRequest("Producto no encontrado o stock insuficiente.");
 
-    //buscar producto si ya existe en el carrito
     var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
     if (item is null)
     {
@@ -128,11 +113,11 @@ app.MapPut("carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext d
         if (item.Cantidad > producto.Stock)
             return Results.BadRequest("La cantidad supera el stock disponible.");
     }
+
     await db.SaveChangesAsync();
     return Results.Ok(carrito);
 });
 
-//6. DELETE elima/ reduce 
 app.MapDelete("/carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext db, int carritoId, int productoId, int? cantidad) =>
 {
     var carrito = await db.Carritos.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == carritoId);
@@ -140,8 +125,7 @@ app.MapDelete("/carritos/{carritoId:int}/{productoId:int}", async (TiendaDbConte
 
     var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
     if (item is null) return Results.NotFound("Producto en el carrito no encontrado.");
-    
-    // se especifica cantidad y es menor al total, se reduce, sino se remueve el item.
+
     if (cantidad.HasValue && cantidad.Value < item.Cantidad)
         item.Cantidad -= cantidad.Value;
     else
@@ -151,7 +135,6 @@ app.MapDelete("/carritos/{carritoId:int}/{productoId:int}", async (TiendaDbConte
     return Results.Ok(carrito);
 });
 
-//7. PUT confrimmar compra
 app.MapPut("/carritos/{carritoId:int}/confirmar", async (TiendaDbContext db, int carritoId, Compra compra) =>
 {
     var carrito = await db.Carritos
@@ -163,18 +146,16 @@ app.MapPut("/carritos/{carritoId:int}/confirmar", async (TiendaDbContext db, int
     if (!carrito.Items.Any())
         return Results.BadRequest("El carrito está vacío.");
 
-    // Preparar la compra usando los ítems del carrito
     compra.Fecha = DateTime.Now;
     compra.Items = carrito.Items.Select(item => new ItemCompra
     {
         ProductoId = item.ProductoId,
         Cantidad = item.Cantidad,
         PrecioUnitario = item.PrecioUnitario,
-        Productos = item.Producto // Asegúrate de que 'Producto' está incluido en el Include del carrito
+        Productos = item.Producto
     }).ToList();
     compra.Total = compra.Items.Sum(i => i.Cantidad * i.PrecioUnitario);
 
-    // Descontar stock de cada producto
     foreach (var item in carrito.Items)
     {
         var prod = await db.Productos.FirstOrDefaultAsync(p => p.Id == item.ProductoId);
@@ -189,6 +170,4 @@ app.MapPut("/carritos/{carritoId:int}/confirmar", async (TiendaDbContext db, int
     return Results.Ok(compra);
 });
 
-app.UseAuthorization();
-app.MapControllers();
 app.Run();
