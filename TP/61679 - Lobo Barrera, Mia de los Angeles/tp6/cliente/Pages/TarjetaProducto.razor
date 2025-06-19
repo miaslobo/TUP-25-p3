@@ -1,0 +1,28 @@
+@using cliente.Modelos
+@using cliente.Services
+@using cliente.Pages
+@inject CarritoService CarritoService
+@inject NavigationManager Navigation
+
+<div class="card m-2" style="width: 18rem;">
+    <img src="@Producto.ImagenUrl" class="card-img-top" alt="@Producto.Nombre" />
+    <div class="card-body">
+        <h5 class="card-title">@Producto.Nombre</h5>
+        <p class="card-text">@Producto.Descripcion</p>
+        <p class="card-text"><strong>Precio:</strong> $@Producto.Precio</p>
+        <p class="card-text"><strong>Stock:</strong> @Producto.Stock</p>
+        <button class="btn btn-primary" @onclick="AgregarAlCarrito" disabled="@(Producto.Stock <= 0)">
+            Agregar al carrito
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Producto Producto { get; set; }
+
+    private async Task AgregarAlCarrito()
+    {
+        await CarritoService.AgregarProducto(Producto.Id, 1);
+        Navigation.NavigateTo("/carrito");
+    }
+}

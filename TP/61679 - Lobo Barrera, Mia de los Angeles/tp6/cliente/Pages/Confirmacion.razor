@@ -55,7 +55,7 @@ else
 
     private async Task OnConfirmar()
     {
-        var response = await Http.PutAsJsonAsync($"/carritos/{carritoId}/confirmar", compra);
+        var response = await Http.PutAsJsonAsync($"http://localhost:5177/carritos/{carritoId}/confirmar", compra);
         if (response.IsSuccessStatusCode)
         {
             // Tras confirmar, se redirige al catálogo (o se muestra mensaje de éxito)

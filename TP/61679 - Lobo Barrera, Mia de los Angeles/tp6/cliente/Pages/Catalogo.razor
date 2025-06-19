@@ -1,21 +1,20 @@
-@page "/catalogo"
-@using cliente.Pages
+@page "/"
 @using cliente.Modelos
 @inject HttpClient Http
 
 <h1>Catálogo de Productos</h1>
 
 <div class="mb-3">
-    <input type="text" @bind="searchQuery" placeholder="Buscar productos..." class="form-control" />
-    <button class="btn btn-primary mt-2" @onclick="Buscar">Buscar</button>
+    <input @bind="searchQuery" placeholder="Buscar producto..." />
+    <button @onclick="Buscar">Buscar</button>
 </div>
 
-<div class="productos-grid">
-    @if (productos == null)
+<div class="productos-grid d-flex flex-wrap">
+    @if (productos is null)
     {
         <p>Cargando productos...</p>
     }
-    else if (productos.Count == 0)
+    else if (!productos.Any())
     {
         <p>No se encontraron productos.</p>
     }
@@ -29,23 +28,27 @@
 </div>
 
 @code {
-    private List<Producto> productos;
     private string searchQuery = string.Empty;
+    private List<Producto> productos;
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarProductos();
+        try{
+        productos = await Http.GetFromJsonAsync<List<Producto>>("http://localhost:5184/productos");
+        Console.WriteLine($"Productod cargados: {productos.Count}");
     }
-
-    private async Task CargarProductos()
+    catch(Exception ex)
     {
-        // Si se ingresa un query, se lo agrega como parámetro
-        string url = string.IsNullOrWhiteSpace(searchQuery) ? "/productos" : $"/productos?query={searchQuery}";
-        productos = await Http.GetFromJsonAsync<List<Producto>>(url);
+        Console.WriteLine($"Error cargando productos: {ex.Message}");
+    }
     }
 
     private async Task Buscar()
     {
-        await CargarProductos();
+        string url = string.IsNullOrWhiteSpace(searchQuery)
+            ? "http://localhost:5184/productos"
+            : $"http://localhost:5184/productos?query={searchQuery}";
+
+        productos = await Http.GetFromJsonAsync<List<Producto>>(url);
     }
 }

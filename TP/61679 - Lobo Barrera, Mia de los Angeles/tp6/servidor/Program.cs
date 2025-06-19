@@ -1,8 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Data.Common;
 using servidor.Modelos;
-using Microsoft.Extensions.DependencyInjection;
 using servidor.Data;
 #nullable enable
 
@@ -25,8 +22,10 @@ builder.Services.AddDbContext<TiendaDbContext>(options => options.UseSqlite(buil
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddControllers();
 
 var app = builder.Build();
+app.UseCors("PermitirCliente");
 
 if (app.Environment.IsDevelopment())
 {
@@ -41,7 +40,9 @@ if (app.Environment.IsDevelopment())
 }
 
 // Usar CORS con la política definida
+app.UseRouting();
 app.UseCors("AllowClientApp");
+app.UseAuthorization();
 
 // Mapear rutas básicas
 app.MapGet("/", () => "Servidor API está en funcionamiento");
@@ -51,7 +52,21 @@ app.MapGet("/api/datos", () => new { Mensaje = "Datos desde el servidor", Fecha 
 
 //endpoins
 
-//1. GET de productos con busqueda
+//1. POST creamos carrito vacio
+app.MapPost("/carritos", async (TiendaDbContext db) =>
+{
+    var nuevoCarrito = new Carrito
+    {
+        Items = new List<CarritoItem>()
+    };
+
+    db.Carritos.Add(nuevoCarrito);
+    await db.SaveChangesAsync();
+    return Results.Ok(new { Id = nuevoCarrito.Id});
+}
+);
+
+//2. GET de productos con busqueda
 app.MapGet("/productos", async (TiendaDbContext db, string? query) =>
 {
     var productosQuery = db.Productos.AsQueryable();
@@ -62,7 +77,7 @@ app.MapGet("/productos", async (TiendaDbContext db, string? query) =>
     return await productosQuery.ToListAsync();
 });
 
-//POST: inicializar el carrito y retorna su ID
+//3. POST: inicializar el carrito y retorna su ID
 app.MapGet("/carritos/{carritoId:int}", async (TiendaDbContext db, int carritoId) =>
 {
     var carrito = await db.Carritos
@@ -72,7 +87,7 @@ app.MapGet("/carritos/{carritoId:int}", async (TiendaDbContext db, int carritoId
     return carrito is not null ? Results.Ok(carrito) : Results.NotFound();
 });
 
-//3. DELETE vaciar carrito
+//4. DELETE vaciar carrito
 app.MapDelete("/carritos/{carritoId:int}", async (TiendaDbContext db, int carritoId) =>
 {
     var carrito = await db.Carritos.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == carritoId);
@@ -82,11 +97,14 @@ app.MapDelete("/carritos/{carritoId:int}", async (TiendaDbContext db, int carrit
     return Results.Ok();
 });
 
-//4. PUT agrega/actualiza el producto en carrito
-app.MapPut("carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext db, int carritoId, int productoId, int cantidad) =>
+//5. PUT agrega/actualiza el producto en carrito
+app.MapPut("carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext db, int carritoId, int productoId, HttpRequest request) =>
 {
+    var body = await request.ReadFromJsonAsync<Dictionary<string, int>>();
+    if (body == null || !body.TryGetValue("cantidad", out var cantidad))
+        return Results.BadRequest("Falta el parámetro 'cantidad'.");
     //buscar carrito y producto
-    var carrito = await db.Carritos.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == carritoId);
+        var carrito = await db.Carritos.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == carritoId);
     if (carrito is null) return Results.NotFound("Carrito no encontrado.");
 
     var producto = await db.Productos.FirstOrDefaultAsync(p => p.Id == productoId);
@@ -114,7 +132,7 @@ app.MapPut("carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext d
     return Results.Ok(carrito);
 });
 
-//5. DELETE elima/ reduce 
+//6. DELETE elima/ reduce 
 app.MapDelete("/carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext db, int carritoId, int productoId, int? cantidad) =>
 {
     var carrito = await db.Carritos.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == carritoId);
@@ -133,7 +151,7 @@ app.MapDelete("/carritos/{carritoId:int}/{productoId:int}", async (TiendaDbConte
     return Results.Ok(carrito);
 });
 
-//6. PUT confrimmar compra
+//7. PUT confrimmar compra
 app.MapPut("/carritos/{carritoId:int}/confirmar", async (TiendaDbContext db, int carritoId, Compra compra) =>
 {
     var carrito = await db.Carritos
@@ -171,4 +189,6 @@ app.MapPut("/carritos/{carritoId:int}/confirmar", async (TiendaDbContext db, int
     return Results.Ok(compra);
 });
 
+app.UseAuthorization();
+app.MapControllers();
 app.Run();
