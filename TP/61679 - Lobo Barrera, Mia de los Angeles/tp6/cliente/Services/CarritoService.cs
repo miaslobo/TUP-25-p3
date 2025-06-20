@@ -92,18 +92,27 @@ namespace cliente.Services
         public void IncrementarCantidad(int productoId)
         {
             var item = Items.FirstOrDefault(i => i.Producto.Id == productoId);
-            if (item != null) item.Cantidad++;
+            if (item != null)
+            {
+                item.Cantidad++;
+                await AgregarProducto(productoId, 1);
+            }
         }
 
-        public void DisminuirCantidad(int productoId)
+        public async Task DisminuirCantidad(int productoId)
         {
             var item = Items.FirstOrDefault(i => i.Producto.Id == productoId);
             if (item != null)
             {
-                if (item.Cantidad > 1)
-                    item.Cantidad--;
-                else
+                item.Cantidad--;
+                if (item.Cantidad <= 0)
+                {
                     Items.Remove(item);
+                }
+                else
+                {
+                    await AgregarProducto(productoId, -1);
+                }
             }
         }
 
