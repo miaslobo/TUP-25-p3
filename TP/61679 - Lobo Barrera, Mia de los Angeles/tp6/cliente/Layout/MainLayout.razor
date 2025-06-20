@@ -1,12 +1,13 @@
 ﻿@using cliente.Modelos
 @using cliente.Services
+@inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject CarritoService CarritoService
 
 <div class="navbar bg-dark text-white p-3 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
         <img src="img/F1.svg.png" alt="F1 Logo" style="height: 40px; margin-right: 10px;" />
-        <h3 class="mb-0">F1 Ropa Oficial</h3>
+        <h3 class="mb-0" style=color: #white; font-weight: 700>F1 Merch</h3>
     </div>
     <div>
         <a href="/carrito" class="btn btn-outline-light position-relative">

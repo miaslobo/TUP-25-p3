@@ -83,12 +83,15 @@ else
     }
 
     private async Task OnConfirmar()
+{
+    try
     {
         var response = await Http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/confirmar", compra);
 
         if (response.IsSuccessStatusCode)
         {
             CarritoService.ReiniciarCarrito();
+            await CarritoService.CargarCarritoDesdeBackend();
             Navigation.NavigateTo("/");
         }
         else
@@ -97,4 +100,9 @@ else
             Console.WriteLine($"Error al confirmar compra: {error}");
         }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Excepción: {ex.Message}");
+    }
+}
 }

@@ -79,3 +79,10 @@ input[type="text"], input[type="search"] {
 .badge:active{
     transform: scale(1.2);
 }
+
+h1, h2, h3 .card-title{
+    font-weight: 700;
+    color: #e10600;
+    
+
+}

@@ -45,6 +45,11 @@ namespace cliente.Services
             }
 
             await CargarCarritoDesdeBackend();
+            var item = Items.FirstOrDefault(i => i.Producto.Id == productoId);
+            if (item != null)
+            {
+                item.Producto.Stock -= cantidad;
+            }
             await MostrarToast("Producto agregado al carrito");
         }
 
@@ -156,7 +161,7 @@ namespace cliente.Services
                 throw new Exception("No se pudo confirmar la compra.");
 
             Items.Clear();
-            await MostrarToast("¡Compra realizada con éxito, muchas gracias!");
+            /*await MostrarToast("¡Compra realizada con éxito, muchas gracias!");*/
         }
 
         public async Task IncializarAsync()

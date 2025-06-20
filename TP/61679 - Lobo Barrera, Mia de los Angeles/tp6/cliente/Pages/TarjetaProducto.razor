@@ -24,10 +24,10 @@
 
     private async Task AgregarAlCarrito()
     {
-        await CarritoService.AgregarProducto(Producto.Id, 1);
-        if(OnProductoAgregado.HasDelegate)
-            await OnProductoAgregado.InvokeAsync();
-        
-        Navigation.NavigateTo("/carrito");
+        if(Producto.Stock > 0)
+        {
+            await CarritoService.AgregarProducto(Producto.Id, 1);
+            Producto.Stock--;
+        }
     }
 }
