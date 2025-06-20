@@ -89,13 +89,13 @@ namespace cliente.Services
                 throw;
             }
         }
-        public void IncrementarCantidad(int productoId)
+        public async Task IncrementarCantidad(int productoId)
         {
             var item = Items.FirstOrDefault(i => i.Producto.Id == productoId);
             if (item != null)
             {
-                item.Cantidad++;
                 await AgregarProducto(productoId, 1);
+                item.Cantidad++;
             }
         }
 
@@ -104,16 +104,29 @@ namespace cliente.Services
             var item = Items.FirstOrDefault(i => i.Producto.Id == productoId);
             if (item != null)
             {
-                item.Cantidad--;
-                if (item.Cantidad <= 0)
+                if (item.Cantidad > 1)
                 {
-                    Items.Remove(item);
+                    await AgregarProducto(productoId, -1);
+                    item.Cantidad--;
                 }
                 else
                 {
-                    await AgregarProducto(productoId, -1);
+                    await QuitarProductodelBackend(productoId);
+                    Items.Remove(item);
                 }
             }
+        }
+
+        public async Task QuitarProductodelBackend(int productoId)
+        {
+            if (!carritoId.HasValue) return;
+            var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoId}/{productoId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error al quitar el producto del backend: {msg}");
+            }
+
         }
 
         public void ReiniciarCarrito()

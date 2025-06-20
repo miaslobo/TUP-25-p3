@@ -45,18 +45,23 @@ else
     private int? carritoId;
 
     protected override async Task OnInitializedAsync()
+{
+    try
     {
         carritoId = CarritoService.ObtenerCarritoIdActual();
 
         if (carritoId == null)
         {
+            Console.WriteLine("No hay carrito activo.");
             Navigation.NavigateTo("/");
             return;
         }
 
         var response = await Http.GetAsync($"http://localhost:5184/carritos/{carritoId}");
+
         if (!response.IsSuccessStatusCode)
         {
+            Console.WriteLine($"Error al obtener carrito: {response.StatusCode}");
             Navigation.NavigateTo("/");
             return;
         }
@@ -64,6 +69,7 @@ else
         var carrito = await response.Content.ReadFromJsonAsync<CarritoModel>();
         if (carrito == null || !carrito.Items.Any())
         {
+            Console.WriteLine("Carrito vacío o no encontrado.");
             Navigation.NavigateTo("/");
             return;
         }
@@ -81,6 +87,12 @@ else
             Fecha = DateTime.Now
         };
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error inesperado: {ex.Message}");
+        Navigation.NavigateTo("/"); // Por si algo explota, te lleva al catálogo
+    }
+}
 
     private async Task OnConfirmar()
 {
@@ -104,5 +116,5 @@ else
     {
         Console.WriteLine($"Excepción: {ex.Message}");
     }
-}
-}
+    }
+    }
