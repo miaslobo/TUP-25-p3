@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+/*using Microsoft.AspNetCore.Mvc;
 using servidor.Modelos;
 using servidor.Data;
 using Microsoft.EntityFrameworkCore;
@@ -76,3 +76,4 @@ namespace servidor.Controllers
         public int Id { get; set; }
     }
 }
+*/
