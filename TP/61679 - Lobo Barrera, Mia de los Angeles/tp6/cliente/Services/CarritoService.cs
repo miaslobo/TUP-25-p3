@@ -45,6 +45,7 @@ namespace cliente.Services
             }
 
             await CargarCarritoDesdeBackend();
+            await MostrarToast("Producto agregado al carrito");
         }
 
         private async Task<int> ObtenerOCrearCarritoId()
@@ -155,12 +156,18 @@ namespace cliente.Services
                 throw new Exception("No se pudo confirmar la compra.");
 
             Items.Clear();
+            await MostrarToast("¡Compra realizada con éxito, muchas gracias!");
         }
 
         public async Task IncializarAsync()
         {
             await ObtenerOCrearCarritoId();
             await CargarCarritoDesdeBackend();
+        }
+
+        private async Task MostrarToast(string mensaje)
+        {
+            await _js.InvokeVoidAsync("mostrarToast", mensaje);
         }
     }
 

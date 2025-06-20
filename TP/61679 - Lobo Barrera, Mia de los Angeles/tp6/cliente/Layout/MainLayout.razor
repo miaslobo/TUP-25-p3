@@ -1,15 +1,37 @@
-﻿@using cliente.Services
+﻿@using cliente.Modelos
+@using cliente.Services
+@inject NavigationManager Navigation
 @inject CarritoService CarritoService
 
-@inherits LayoutComponentBase
+<div class="navbar bg-dark text-white p-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+        <img src="img/F1.svg.png" alt="F1 Logo" style="height: 40px; margin-right: 10px;" />
+        <h3 class="mb-0">F1 Ropa Oficial</h3>
+    </div>
+    <div>
+        <a href="/carrito" class="btn btn-outline-light position-relative">
+            🛒 Carrito
+            @if (CarritoService.Items.Count > 0)
+            {
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    @CarritoService.Items.Count
+                </span>
+            }
+        </a>
+    </div>
+</div>
 
-<div class="page">
+<div class="container mt-4">
     @Body
 </div>
 
-@code {
-    protected override async Task OnInitializedAsync()
-    {
-        await CarritoService.IncializarAsync();
-    }
-}
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="=z-index: 1000">
+    <div class="=toast align-items-center text-white bg-sucess border-0" role="=alert" id="=toastNotification" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="=toastMensaje">
+                ¡Mensaje de ejemplo!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+    </div>
+</div>
