@@ -1,4 +1,15 @@
-﻿@inherits LayoutComponentBase
+﻿@using cliente.Services
+@inject CarritoService CarritoService
+
+@inherits LayoutComponentBase
+
 <div class="page">
     @Body
 </div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await CarritoService.IncializarAsync();
+    }
+}

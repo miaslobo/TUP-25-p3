@@ -43,12 +43,21 @@ namespace cliente.Services
                 Console.WriteLine($"Error al agregar producto al carrito: {msg}");
                 throw new Exception("No se pudo agregar el producto al carrito.");
             }
+
+            await CargarCarritoDesdeBackend();
         }
 
         private async Task<int> ObtenerOCrearCarritoId()
         {
             if (carritoId.HasValue)
                 return carritoId.Value;
+
+            var idDesdeStorage = await _js.InvokeAsync<string>("localStorage.getItem", "carritoId");
+            if (int.TryParse(idDesdeStorage, out int idExistente))
+            {
+                carritoId = idExistente;
+                return carritoId.Value;
+            }
 
             try
             {
@@ -65,6 +74,7 @@ namespace cliente.Services
                     throw new Exception("Respuesta vacía al crear el carrito.");
 
                 carritoId = result.Id;
+                await _js.InvokeVoidAsync("localStorage.setItem", "carritoId", carritoId.ToString());
                 return carritoId.Value;
             }
             catch (Exception ex)
@@ -145,6 +155,12 @@ namespace cliente.Services
                 throw new Exception("No se pudo confirmar la compra.");
 
             Items.Clear();
+        }
+
+        public async Task IncializarAsync()
+        {
+            await ObtenerOCrearCarritoId();
+            await CargarCarritoDesdeBackend();
         }
     }
 
