@@ -22,7 +22,7 @@
     {
         foreach (var producto in productos)
         {
-            <TarjetaProducto Producto="producto" />
+            <TarjetaProducto Producto="producto" OnProductoAgregado="CargarProductos" />
         }
     }
 </div>
@@ -33,16 +33,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try{
-        productos = await Http.GetFromJsonAsync<List<Producto>>("http://localhost:5184/productos");
-        Console.WriteLine($"Productod cargados: {productos.Count}");
+        await CargarProductos();
     }
-    catch(Exception ex)
+    
+    private async Task CargarProductos()
     {
-        Console.WriteLine($"Error cargando productos: {ex.Message}");
+        try
+        {
+            productos = await Http.GetFromJsonAsync<List<Producto>>("http://localhost:5184/productos");
+            Console.WriteLine($"Productos cargados: {productos.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando productos: {ex.Message}");
+        }
     }
-    }
-
     private async Task Buscar()
     {
         string url = string.IsNullOrWhiteSpace(searchQuery)

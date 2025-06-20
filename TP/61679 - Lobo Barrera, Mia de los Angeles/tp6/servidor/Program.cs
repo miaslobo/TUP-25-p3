@@ -97,6 +97,7 @@ app.MapPut("/carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext 
         return Results.BadRequest("Producto no encontrado o stock insuficiente.");
 
     var item = carrito.Items.FirstOrDefault(i => i.ProductoId == productoId);
+    int cantidadTotal = (item?.Cantidad ?? 0) + cantidad;
     if (item is null)
     {
         carrito.Items.Add(new CarritoItem
@@ -109,7 +110,7 @@ app.MapPut("/carritos/{carritoId:int}/{productoId:int}", async (TiendaDbContext 
     else
     {
         item.Cantidad += cantidad;
-        if (item.Cantidad > producto.Stock)
+        if (cantidadTotal > producto.Stock)
             return Results.BadRequest("La cantidad supera el stock disponible.");
     }
 

@@ -20,9 +20,14 @@
 @code {
     [Parameter] public Producto Producto { get; set; }
 
+    [Parameter] public EventCallback OnProductoAgregado { get; set; }
+
     private async Task AgregarAlCarrito()
     {
         await CarritoService.AgregarProducto(Producto.Id, 1);
+        if(OnProductoAgregado.HasDelegate)
+            await OnProductoAgregado.InvokeAsync();
+        
         Navigation.NavigateTo("/carrito");
     }
 }
