@@ -46,33 +46,33 @@ namespace cliente.Services
         }
 
         private async Task<int> ObtenerOCrearCarritoId()
-{
-    if (carritoId.HasValue)
-        return carritoId.Value;
-
-    try
-    {
-        var response = await _http.PostAsync("http://localhost:5184/carritos", null);
-        if (!response.IsSuccessStatusCode)
         {
-            var msg = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"Error al crear el carrito: {msg}");
-            throw new Exception("No se pudo crear el carrito.");
+            if (carritoId.HasValue)
+                return carritoId.Value;
+
+            try
+            {
+                var response = await _http.PostAsync("http://localhost:5184/carritos", null);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var msg = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error al crear el carrito: {msg}");
+                    throw new Exception("No se pudo crear el carrito.");
+                }
+
+                var result = await response.Content.ReadFromJsonAsync<CrearCarritoResponse>();
+                if (result == null)
+                    throw new Exception("Respuesta vacía al crear el carrito.");
+
+                carritoId = result.Id;
+                return carritoId.Value;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Excepción al crear el carrito: {ex.Message}");
+                throw;
+            }
         }
-
-        var result = await response.Content.ReadFromJsonAsync<CrearCarritoResponse>();
-        if (result == null)
-            throw new Exception("Respuesta vacía al crear el carrito.");
-
-        carritoId = result.Id;
-        return carritoId.Value;
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Excepción al crear el carrito: {ex.Message}");
-        throw;
-    }
-}
         public void IncrementarCantidad(int productoId)
         {
             var item = Items.FirstOrDefault(i => i.Producto.Id == productoId);
@@ -97,11 +97,67 @@ namespace cliente.Services
         }
 
         public decimal Total => Items.Sum(i => i.Cantidad * i.Producto.Precio);
+
+        public int? ObtenerCarritoIdActual() => carritoId;
+
+        public async Task CargarCarritoDesdeBackend()
+        {
+            if (!carritoId.HasValue)
+                return;
+
+            var response = await _http.GetAsync($"http://localhost:5184/carritos/{carritoId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var carrito = await response.Content.ReadFromJsonAsync<CarritoModel>();
+                if (carrito != null)
+                {
+                    Items = carrito.Items.Select(i => new ItemCarrito
+                    {
+                        Producto = i.Producto,
+                        Cantidad = i.Cantidad
+                    }).ToList();
+                }
+            }
+        }
+
+        public async Task VaciarCarrito()
+        {
+            if (!carritoId.HasValue)
+                return;
+
+            var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                Items.Clear();
+            }
+        }
+
+        public async Task ConfirmarCompra(DatosCliente datos)
+        {
+            if (!carritoId.HasValue)
+                throw new Exception("No hay carrito");
+
+            var response = await _http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/confirmar", datos);
+
+            if (!response.IsSuccessStatusCode)
+                throw new Exception("No se pudo confirmar la compra.");
+
+            Items.Clear();
+        }
     }
 
     public class ItemCarrito
     {
         public Producto Producto { get; set; }
         public int Cantidad { get; set; }
+    }
+
+    public class DatosCliente
+    {
+        public string Apellido { get; set; }
+        public string Nombre { get; set; }
+        public string Email { get; set; }
     }
 }

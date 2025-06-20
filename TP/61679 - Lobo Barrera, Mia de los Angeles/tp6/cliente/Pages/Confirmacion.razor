@@ -3,6 +3,7 @@
 @using cliente.Modelos
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject CarritoService CarritoService
 
 <h1>Confirmación de Compra</h1>
 
@@ -13,12 +14,14 @@
 else
 {
     <div>
-        <p><strong>Total de Items:</strong> @compra.Items.Sum(i => i.Cantidad)</p>
+        <p><strong>Total de Ítems:</strong> @compra.Items.Sum(i => i.Cantidad)</p>
         <p><strong>Importe Total:</strong> $@compra.Total</p>
     </div>
+
     <EditForm Model="compra" OnValidSubmit="OnConfirmar">
         <DataAnnotationsValidator />
         <ValidationSummary />
+
         <div class="form-group mb-3">
             <label>Nombre</label>
             <InputText @bind-Value="compra.NombreCliente" class="form-control" />
@@ -31,35 +34,66 @@ else
             <label>Email</label>
             <InputText @bind-Value="compra.EmailCliente" type="email" class="form-control" />
         </div>
+
         <button type="submit" class="btn btn-success">Confirmar Compra</button>
     </EditForm>
 }
 
 @code {
     private Compra compra;
-    [Parameter] [SupplyParameterFromQuery] public int carritoId { get; set; } = 1; // En este ejemplo, un carrito fijo
+    private int? carritoId;
 
     protected override async Task OnInitializedAsync()
     {
-        // Para simplificar, se podría llamar a la API para obtener información del carrito si fuera necesario.
-        // Aquí simplemente inicializamos el objeto Compra:
+        carritoId = CarritoService.ObtenerCarritoIdActual();
+
+        if (carritoId == null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        var response = await Http.GetAsync($"http://localhost:5184/carritos/{carritoId}");
+        if (!response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        var carrito = await response.Content.ReadFromJsonAsync<Carrito>();
+        if (carrito == null || !carrito.Items.Any())
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
         compra = new Compra
         {
-            Items = new List<ItemCompra>(),
+            Items = carrito.Items.Select(i => new ItemCompra
+            {
+                ProductoId = i.Producto.Id,
+                Cantidad = i.Cantidad,
+                PrecioUnitario = i.Producto.Precio,
+                Productos = i.Producto
+            }).ToList(),
+            Total = carrito.Items.Sum(i => i.Cantidad * i.Producto.Precio),
             Fecha = DateTime.Now
         };
-
-        // Se podría precargar información del carrito para mostrar resumen si se deseara.
-        // Por ejemplo, obtener datos a través de GET /carritos/{carritoId}
     }
 
     private async Task OnConfirmar()
     {
-        var response = await Http.PutAsJsonAsync($"http://localhost:5177/carritos/{carritoId}/confirmar", compra);
+        var response = await Http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/confirmar", compra);
+
         if (response.IsSuccessStatusCode)
         {
-            // Tras confirmar, se redirige al catálogo (o se muestra mensaje de éxito)
-            Navigation.NavigateTo("/catalogo");
+            CarritoService.ReiniciarCarrito();
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Error al confirmar compra: {error}");
         }
     }
 }
