@@ -1,5 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using servidor.Modelos;
+using servidor.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace servidor.Controllers
 {
@@ -10,17 +15,24 @@ namespace servidor.Controllers
         private static Dictionary<int, Carrito> carritos = new();
         private static int contadorId = 1;
 
+        private readonly TiendaDbContext _context;
+
+        public CarritoController(TiendaDbContext context)
+        {
+            _context = context;
+        }
+
         [HttpPost]
         public IActionResult CrearCarrito()
         {
             var nuevoCarrito = new Carrito { Id = contadorId++ };
             carritos[nuevoCarrito.Id] = nuevoCarrito;
 
-            return Ok(new { Id = nuevoCarrito.Id });
+            return Ok(new CrearCarritoResponse { Id = nuevoCarrito.Id });
         }
 
         [HttpPut("{carritoId}/{productoId}")]
-        public IActionResult AgregarProducto(int carritoId, int productoId, [FromBody] Dictionary<string, int> body)
+        public async Task<IActionResult> AgregarProducto(int carritoId, int productoId, [FromBody] Dictionary<string, int> body)
         {
             if (!body.TryGetValue("cantidad", out int cantidad))
                 return BadRequest("Falta la cantidad.");
@@ -28,10 +40,9 @@ namespace servidor.Controllers
             if (!carritos.TryGetValue(carritoId, out var carrito))
                 return NotFound("Carrito no encontrado.");
 
-            // Buscar producto en base de datos (mock acá)
-            var producto = ProductosBD.FirstOrDefault(p => p.Id == productoId);
+            var producto = await _context.Productos.FindAsync(productoId);
             if (producto == null)
-                return NotFound("Producto no encontrado.");
+                return NotFound("Producto no encontrado en la base de datos.");
 
             var itemExistente = carrito.Items.FirstOrDefault(i => i.Producto.Id == productoId);
             if (itemExistente != null)
@@ -58,13 +69,10 @@ namespace servidor.Controllers
 
             return Ok(carrito);
         }
+    }
 
-        // Mock de productos (reemplazá esto por acceso real a DB si lo tenés)
-        private static List<Producto> ProductosBD = new List<Producto>
-        {
-            new Producto { Id = 1, Nombre = "Hamburguesa", Descripcion = "Con cheddar", Precio = 1500, Stock = 10, ImagenUrl = "" },
-            new Producto { Id = 2, Nombre = "Papas Fritas", Descripcion = "Grandes", Precio = 1000, Stock = 20, ImagenUrl = "" },
-            // Agregá todos los productos que necesites
-        };
+    public class CrearCarritoResponse
+    {
+        public int Id { get; set; }
     }
 }
