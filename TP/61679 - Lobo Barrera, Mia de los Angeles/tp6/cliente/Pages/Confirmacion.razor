@@ -8,7 +8,15 @@
 
 <h1>Confirmación de Compra</h1>
 
-@if (compra == null)
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (mensajeExito)
+{
+    <div class="alert alert-success">¡Gracias por tu compra! Serás redirigido al inicio...</div>
+}
+else if (compra == null)
 {
     <p>Cargando información...</p>
 }
@@ -42,79 +50,81 @@ else
 
 @code {
     private Compra compra;
-    private int? carritoId;
+    private string error;
+    private bool mensajeExito = false;
 
     protected override async Task OnInitializedAsync()
-{
-    try
     {
-        carritoId = CarritoService.ObtenerCarritoIdActual();
-
-        if (carritoId == null)
+        try
         {
-            Console.WriteLine("No hay carrito activo.");
-            Navigation.NavigateTo("/");
-            return;
-        }
+            await CarritoService.IncializarAsync();
+            var carritoId = CarritoService.ObtenerCarritoIdActual();
 
-        var response = await Http.GetAsync($"http://localhost:5184/carritos/{carritoId}");
-
-        if (!response.IsSuccessStatusCode)
-        {
-            Console.WriteLine($"Error al obtener carrito: {response.StatusCode}");
-            Navigation.NavigateTo("/");
-            return;
-        }
-
-        var carrito = await response.Content.ReadFromJsonAsync<CarritoModel>();
-        if (carrito == null || !carrito.Items.Any())
-        {
-            Console.WriteLine("Carrito vacío o no encontrado.");
-            Navigation.NavigateTo("/");
-            return;
-        }
-
-        compra = new Compra
-        {
-            Items = carrito.Items.Select(i => new ItemCompra
+            if (carritoId == null)
             {
-                ProductoId = i.Producto.Id,
-                Cantidad = i.Cantidad,
-                PrecioUnitario = i.Producto.Precio,
-                Productos = i.Producto
-            }).ToList(),
-            Total = carrito.Items.Sum(i => i.Cantidad * i.Producto.Precio),
-            Fecha = DateTime.Now
-        };
+                error = "No hay carrito activo.";
+                return;
+            }
+
+            var response = await Http.GetAsync($"http://localhost:5184/carritos/{carritoId}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                error = $"Error al obtener el carrito. Código: {response.StatusCode}";
+                return;
+            }
+
+            var carrito = await response.Content.ReadFromJsonAsync<CarritoModel>();
+            if (carrito == null || !carrito.Items.Any())
+            {
+                error = "El carrito está vacío.";
+                return;
+            }
+
+            compra = new Compra
+            {
+                Items = carrito.Items.Select(i => new ItemCompra
+                {
+                    ProductoId = i.Producto.Id,
+                    Cantidad = i.Cantidad,
+                    PrecioUnitario = i.Producto.Precio,
+                    Productos = i.Producto
+                }).ToList(),
+                Total = carrito.Items.Sum(i => i.Cantidad * i.Producto.Precio),
+                Fecha = DateTime.Now
+            };
+        }
+        catch (Exception ex)
+        {
+            error = $"Ocurrió un error inesperado: {ex.Message}";
+        }
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error inesperado: {ex.Message}");
-        Navigation.NavigateTo("/"); // Por si algo explota, te lleva al catálogo
-    }
-}
 
     private async Task OnConfirmar()
-{
-    try
     {
-        var response = await Http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/confirmar", compra);
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"http://localhost:5184/carritos/{CarritoService.ObtenerCarritoIdActual()}/confirmar", compra);
 
-        if (response.IsSuccessStatusCode)
-        {
-            CarritoService.ReiniciarCarrito();
-            await CarritoService.CargarCarritoDesdeBackend();
-            Navigation.NavigateTo("/");
+            if (response.IsSuccessStatusCode)
+            {
+                CarritoService.ReiniciarCarrito();
+                await CarritoService.CargarCarritoDesdeBackend();
+                mensajeExito = true;
+
+                // Redirige después de 3 segundos
+                await Task.Delay(3000);
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                var textoError = await response.Content.ReadAsStringAsync();
+                error = $"Error al confirmar compra: {textoError}";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"Error al confirmar compra: {error}");
+            error = $"Excepción al confirmar compra: {ex.Message}";
         }
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Excepción: {ex.Message}");
-    }
-    }
-    }
+}

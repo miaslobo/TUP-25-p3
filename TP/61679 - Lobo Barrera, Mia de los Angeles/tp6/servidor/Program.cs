@@ -164,10 +164,18 @@ app.MapPut("/carritos/{carritoId:int}/confirmar", async (TiendaDbContext db, int
         prod.Stock -= item.Cantidad;
     }
 
+    try
+{
     db.Compras.Add(compra);
     carrito.Items.Clear();
     await db.SaveChangesAsync();
-    return Results.Ok(compra);
+    return Results.Ok(new { mensaje = "Compra realizada con éxito." });
+}
+catch (Exception ex)
+{
+    return Results.Problem("Error al guardar la compra: " + ex.Message);
+}
+
 });
 
 app.Run();

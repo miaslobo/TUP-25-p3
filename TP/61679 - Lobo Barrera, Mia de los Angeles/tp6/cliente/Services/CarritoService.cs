@@ -1,3 +1,4 @@
+// CarritoService.cs corregido
 using System.Net.Http;
 using System.Net.Http.Json;
 using cliente.Modelos;
@@ -6,7 +7,6 @@ using System.Threading.Tasks;
 using System.Linq;
 using System;
 using System.Collections.Generic;
-using cliente.Pages;
 
 namespace cliente.Services
 {
@@ -14,8 +14,8 @@ namespace cliente.Services
     {
         private readonly HttpClient _http;
         private readonly IJSRuntime _js;
-
         private int? carritoId;
+
         public class CrearCarritoResponse { public int Id { get; set; } }
 
         public CarritoService(HttpClient http, IJSRuntime js)
@@ -28,15 +28,11 @@ namespace cliente.Services
 
         public async Task AgregarProducto(int productoId, int cantidad)
         {
-            var carritoId = await ObtenerOCrearCarritoId();
+            var carritoIdActual = await ObtenerOCrearCarritoId();
 
-            var body = new Dictionary<string, int>
-            {
-                { "cantidad", cantidad }
-            };
+            var body = new Dictionary<string, int> { { "cantidad", cantidad } };
 
-            var response = await _http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/{productoId}", body);
-
+            var response = await _http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoIdActual}/{productoId}", body);
             if (!response.IsSuccessStatusCode)
             {
                 var msg = await response.Content.ReadAsStringAsync();
@@ -89,6 +85,7 @@ namespace cliente.Services
                 throw;
             }
         }
+
         public async Task IncrementarCantidad(int productoId)
         {
             var item = Items.FirstOrDefault(i => i.Producto.Id == productoId);
@@ -119,36 +116,37 @@ namespace cliente.Services
 
         public async Task QuitarProductodelBackend(int productoId)
         {
-            if (!carritoId.HasValue) return;
-            var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoId}/{productoId}");
+            var carritoIdActual = await ObtenerOCrearCarritoId();
+            var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoIdActual}/{productoId}");
             if (!response.IsSuccessStatusCode)
             {
                 var msg = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Error al quitar el producto del backend: {msg}");
             }
-
         }
 
         private async Task ActualizarProductoEnBackend(int productoId, int cantidad)
-{
-    var body = new Dictionary<string, int> { { "cantidad", cantidad } };
-    var response = await _http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/{productoId}", body);
-    if (!response.IsSuccessStatusCode)
-    {
-        var error = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Error al actualizar producto en backend: {error}");
-    }
-}
+        {
+            var carritoIdActual = await ObtenerOCrearCarritoId();
+            var body = new Dictionary<string, int> { { "cantidad", cantidad } };
+            var response = await _http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoIdActual}/{productoId}", body);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error al actualizar producto en backend: {error}");
+            }
+        }
 
-private async Task EliminarProductoDelBackend(int productoId)
-{
-    var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoId}/{productoId}");
-    if (!response.IsSuccessStatusCode)
-    {
-        var error = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Error al eliminar producto del backend: {error}");
-    }
-}
+        private async Task EliminarProductoDelBackend(int productoId)
+        {
+            var carritoIdActual = await ObtenerOCrearCarritoId();
+            var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoIdActual}/{productoId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error al eliminar producto del backend: {error}");
+            }
+        }
 
         public void ReiniciarCarrito()
         {
@@ -157,15 +155,16 @@ private async Task EliminarProductoDelBackend(int productoId)
 
         public decimal Total => Items.Sum(i => i.Cantidad * i.Producto.Precio);
 
-        public int? ObtenerCarritoIdActual() => carritoId;
+        public async Task<int?> ObtenerCarritoIdActualSeguro()
+        {
+            return await ObtenerOCrearCarritoId();
+        }
 
         public async Task CargarCarritoDesdeBackend()
         {
-            if (!carritoId.HasValue)
-                return;
+            var carritoIdActual = await ObtenerOCrearCarritoId();
 
-            var response = await _http.GetAsync($"http://localhost:5184/carritos/{carritoId}");
-
+            var response = await _http.GetAsync($"http://localhost:5184/carritos/{carritoIdActual}");
             if (response.IsSuccessStatusCode)
             {
                 var carrito = await response.Content.ReadFromJsonAsync<CarritoModel>();
@@ -182,11 +181,8 @@ private async Task EliminarProductoDelBackend(int productoId)
 
         public async Task VaciarCarrito()
         {
-            if (!carritoId.HasValue)
-                return;
-
-            var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoId}");
-
+            var carritoIdActual = await ObtenerOCrearCarritoId();
+            var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoIdActual}");
             if (response.IsSuccessStatusCode)
             {
                 Items.Clear();
@@ -195,16 +191,13 @@ private async Task EliminarProductoDelBackend(int productoId)
 
         public async Task ConfirmarCompra(DatosCliente datos)
         {
-            if (!carritoId.HasValue)
-                throw new Exception("No hay carrito");
+            var carritoIdActual = await ObtenerOCrearCarritoId();
 
-            var response = await _http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/confirmar", datos);
-
+            var response = await _http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoIdActual}/confirmar", datos);
             if (!response.IsSuccessStatusCode)
                 throw new Exception("No se pudo confirmar la compra.");
 
             Items.Clear();
-            /*await MostrarToast("¡Compra realizada con éxito, muchas gracias!");*/
         }
 
         public async Task IncializarAsync()
