@@ -94,8 +94,8 @@ namespace cliente.Services
             var item = Items.FirstOrDefault(i => i.Producto.Id == productoId);
             if (item != null)
             {
-                await AgregarProducto(productoId, 1);
                 item.Cantidad++;
+                await ActualizarProductoEnBackend(productoId, item.Cantidad);
             }
         }
 
@@ -106,13 +106,13 @@ namespace cliente.Services
             {
                 if (item.Cantidad > 1)
                 {
-                    await AgregarProducto(productoId, -1);
                     item.Cantidad--;
+                    await ActualizarProductoEnBackend(productoId, item.Cantidad);
                 }
                 else
                 {
-                    await QuitarProductodelBackend(productoId);
                     Items.Remove(item);
+                    await EliminarProductoDelBackend(productoId);
                 }
             }
         }
@@ -128,6 +128,27 @@ namespace cliente.Services
             }
 
         }
+
+        private async Task ActualizarProductoEnBackend(int productoId, int cantidad)
+{
+    var body = new Dictionary<string, int> { { "cantidad", cantidad } };
+    var response = await _http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/{productoId}", body);
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"Error al actualizar producto en backend: {error}");
+    }
+}
+
+private async Task EliminarProductoDelBackend(int productoId)
+{
+    var response = await _http.DeleteAsync($"http://localhost:5184/carritos/{carritoId}/{productoId}");
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"Error al eliminar producto del backend: {error}");
+    }
+}
 
         public void ReiniciarCarrito()
         {

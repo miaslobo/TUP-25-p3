@@ -30,9 +30,9 @@ else
                     <td>@item.Cantidad</td>
                     <td>$@(item.Cantidad * item.Producto.Precio)</td>
                     <td class="d-flex align-items-center gap-2">
-                        <button class="btn btn-sm btn-warning" @onclick="() => CambiarCantidad(item.Producto.Id, -1)">-</button>
+                        <button class="btn btn-sm btn-warning" @onclick="async() => await CarritoService.DisminuirCantidad(item.Producto.Id)">-</button>
                         <span class="mx-1">@item.Cantidad</span>
-                        <button class="btn btn-sm btn-success" @onclick="() => CambiarCantidad(item.Producto.Id, 1)">+</button>
+                        <button class="btn btn-sm btn-success" @onclick="async() => await CarritoService.IncrementarCantidad(item.Producto.Id)">+</button>
                     </td>
                 </tr>
             }
