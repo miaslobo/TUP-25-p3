@@ -30,9 +30,9 @@ else
                     <td>@item.Cantidad</td>
                     <td>$@(item.Cantidad * item.Producto.Precio)</td>
                     <td class="d-flex align-items-center gap-2">
-                        <button class="btn btn-sm btn-warning" @onclick="async() => await CarritoService.DisminuirCantidad(item.Producto.Id)">-</button>
+                        <button class="btn btn-sm btn-warning" @onclick="async () => await CambiarCantidad(item.Producto.Id, -1)">-</button>
                         <span class="mx-1">@item.Cantidad</span>
-                        <button class="btn btn-sm btn-success" @onclick="async() => await CarritoService.IncrementarCantidad(item.Producto.Id)">+</button>
+                        <button class="btn btn-sm btn-success" @onclick="async () => await CambiarCantidad(item.Producto.Id, 1)">+</button>
                     </td>
                 </tr>
             }
@@ -49,12 +49,17 @@ else
 }
 
 @code {
+    protected override async Task OnInitializedAsync()
+    {
+        await CarritoService.CargarCarritoDesdeBackend();
+    }
+
     private void Volver() => Navigation.NavigateTo("/");
 
     private async Task VaciarCarrito()
     {
         await CarritoService.VaciarCarrito();
-        StateHasChanged(); // actualizar vista
+        StateHasChanged(); // actualiza la vista
     }
 
     private void ConfirmarCompra()
@@ -64,12 +69,11 @@ else
 
     private async Task CambiarCantidad(int productoId, int cambio)
     {
-        if(cambio > 0)
-            await Task.Run(() => CarritoService.IncrementarCantidad(productoId));
+        if (cambio > 0)
+            await CarritoService.IncrementarCantidad(productoId);
         else
-            await Task.Run(() => CarritoService.DisminuirCantidad(productoId));
-        StateHasChanged();
+            await CarritoService.DisminuirCantidad(productoId);
 
-
+        StateHasChanged(); // actualiza vista después del cambio
     }
 }

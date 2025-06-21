@@ -155,7 +155,7 @@ namespace cliente.Services
 
         public decimal Total => Items.Sum(i => i.Cantidad * i.Producto.Precio);
 
-        public async Task<int?> ObtenerCarritoIdActualSeguro()
+        public async Task<int?> ObtenerCarritoIdActual()
         {
             return await ObtenerOCrearCarritoId();
         }

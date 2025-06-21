@@ -58,13 +58,7 @@ else
         try
         {
             await CarritoService.IncializarAsync();
-            var carritoId = CarritoService.ObtenerCarritoIdActual();
-
-            if (carritoId == null)
-            {
-                error = "No hay carrito activo.";
-                return;
-            }
+            var carritoId = await CarritoService.ObtenerCarritoIdActual();
 
             var response = await Http.GetAsync($"http://localhost:5184/carritos/{carritoId}");
 
@@ -104,15 +98,17 @@ else
     {
         try
         {
-            var response = await Http.PutAsJsonAsync($"http://localhost:5184/carritos/{CarritoService.ObtenerCarritoIdActual()}/confirmar", compra);
+            var carritoId = await CarritoService.ObtenerCarritoIdActual();
+            var response = await Http.PutAsJsonAsync($"http://localhost:5184/carritos/{carritoId}/confirmar", compra);
 
             if (response.IsSuccessStatusCode)
             {
-                CarritoService.ReiniciarCarrito();
-                await CarritoService.CargarCarritoDesdeBackend();
                 mensajeExito = true;
 
-                // Redirige después de 3 segundos
+                // ⚠️ Solo vaciamos y reiniciamos el carrito si la compra fue exitosa
+                CarritoService.ReiniciarCarrito();
+                await CarritoService.CargarCarritoDesdeBackend();
+
                 await Task.Delay(3000);
                 Navigation.NavigateTo("/");
             }
